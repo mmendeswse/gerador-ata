@@ -12,7 +12,7 @@ window.APP_CONFIG = {
    *   • Interface e servidor no mesmo endereço (Vercel, Cloudflare, local): deixe "".
    * Também pode ser informado pela tela, em "Configurações".
    */
-  API_BASE_URL: "",
+  API_BASE_URL: "https://gerador-ata-ivory.vercel.app",
 
   /** Duração aproximada de cada trecho de áudio enviado para transcrição (minutos). */
   CHUNK_MINUTES: 10,
