@@ -28,6 +28,8 @@ SolidCompression=yes
 WizardStyle=modern
 DisableProgramGroupPage=yes
 UninstallDisplayName={#AppName}
+SetupIconFile={#SourceDir}\instalacao-local\app.ico
+UninstallDisplayIcon={app}\instalacao-local\app.ico
 
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
@@ -39,15 +41,25 @@ Name: "desktopicon"; Description: "Criar atalho na &Área de Trabalho"
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "{app}\iniciar-local.cmd"; WorkingDir: "{app}"; Comment: "Inicia o sistema em http://localhost:3000"
+Name: "{group}\{#AppName}"; Filename: "{sys}\wscript.exe"; \
+  Parameters: """{app}\instalacao-local\iniciar-app.vbs"""; \
+  WorkingDir: "{app}"; IconFilename: "{app}\instalacao-local\app.ico"; \
+  Comment: "Abre o Gerador de Ata e Momento Aberto"
 Name: "{group}\Instalar ou atualizar a IA local"; Filename: "{app}\instalacao-local\instalar.cmd"; WorkingDir: "{app}\instalacao-local"
-Name: "{userdesktop}\{#AppName}"; Filename: "{app}\iniciar-local.cmd"; WorkingDir: "{app}"; Tasks: desktopicon
+Name: "{userdesktop}\{#AppName}"; Filename: "{sys}\wscript.exe"; \
+  Parameters: """{app}\instalacao-local\iniciar-app.vbs"""; \
+  WorkingDir: "{app}"; IconFilename: "{app}\instalacao-local\app.ico"; Tasks: desktopicon
 
 [Run]
 Filename: "powershell.exe"; \
   Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\instalacao-local\instalar-ia-local.ps1"""; \
   Description: "Baixar e configurar a IA local agora (Whisper + Ollama, ~5,5 GB)"; \
   Flags: postinstall hidewizard
+Filename: "{sys}\wscript.exe"; \
+  Parameters: """{app}\instalacao-local\iniciar-app.vbs"""; \
+  WorkingDir: "{app}"; \
+  Description: "Abrir o programa ao concluir"; \
+  Flags: postinstall nowait skipifsilent
 
 [UninstallDelete]
 ; Remove também o que o instalador da IA baixou e o .env gerado.
