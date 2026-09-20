@@ -26,13 +26,18 @@ function ServidorAtivo {
   } catch { $false }
 }
 
-# --- pré-requisito: Node.js -------------------------------------------------
-$env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
-            [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + $env:Path
+# --- Node.js: primeiro o embutido no instalador, depois o do sistema ---------
+$nodeExe = Join-Path $raiz 'runtime\node\node.exe'
+if (-not (Test-Path $nodeExe)) {
+  $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+              [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + $env:Path
+  $doSistema = Get-Command node -ErrorAction SilentlyContinue
+  $nodeExe = if ($doSistema) { $doSistema.Source } else { $null }
+}
 $temServidor = ServidorAtivo
-if (-not $temServidor -and -not (Get-Command node -ErrorAction SilentlyContinue)) {
+if (-not $temServidor -and -not $nodeExe) {
   Avisar ("A instalação ainda não está completa neste computador: o Node.js não foi encontrado." + [Environment]::NewLine + [Environment]::NewLine +
-    'Vou abrir agora o instalador da IA local, que baixa tudo o que falta (Node.js, Whisper e Ollama — ~5,5 GB, uma única vez). Ao final, clique de novo no ícone do programa.') `
+    'Vou abrir agora o instalador da IA local, que baixa tudo o que falta. Ao final, clique de novo no ícone do programa.') `
     ([System.Windows.Forms.MessageBoxIcon]::Warning)
   Start-Process -FilePath (Join-Path $PSScriptRoot 'instalar.cmd') -WorkingDirectory $PSScriptRoot
   exit 0
@@ -41,8 +46,8 @@ if (-not $temServidor -and -not (Get-Command node -ErrorAction SilentlyContinue)
 # --- servidor ----------------------------------------------------------------
 $servidor = $null
 if (-not $temServidor) {
-  Set-Content -Path $log -Value "[$(Get-Date)] Iniciando node local-server.js em $raiz" -Encoding utf8
-  $servidor = Start-Process -FilePath 'node' -ArgumentList 'local-server.js' `
+  Set-Content -Path $log -Value "[$(Get-Date)] Iniciando $nodeExe local-server.js em $raiz" -Encoding utf8
+  $servidor = Start-Process -FilePath $nodeExe -ArgumentList 'local-server.js' `
     -WorkingDirectory $raiz -WindowStyle Hidden -PassThru `
     -RedirectStandardError (Join-Path $pastaDados 'servidor-erro.log')
   for ($i = 0; $i -lt 60; $i++) {

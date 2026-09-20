@@ -39,6 +39,10 @@ Name: "desktopicon"; Description: "Criar atalho na &Área de Trabalho"
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
+#ifdef RuntimeDir
+; Runtime embutido: Node.js portátil, whisper.cpp e modelo de transcrição.
+Source: "{#RuntimeDir}\*"; DestDir: "{app}\runtime"; Flags: recursesubdirs createallsubdirs ignoreversion
+#endif
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{sys}\wscript.exe"; \
@@ -51,10 +55,14 @@ Name: "{userdesktop}\{#AppName}"; Filename: "{sys}\wscript.exe"; \
   WorkingDir: "{app}"; IconFilename: "{app}\instalacao-local\app.ico"; Tasks: desktopicon
 
 [Run]
+; Sempre: escreve o .env apontando para o runtime embutido (sem downloads, sem janela).
+Filename: "powershell.exe"; \
+  Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\instalacao-local\configurar-env.ps1"""; \
+  StatusMsg: "Configurando o programa..."; Flags: runhidden
 Filename: "powershell.exe"; \
   Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\instalacao-local\instalar-ia-local.ps1"""; \
-  Description: "Baixar e configurar a IA local agora (Whisper + Ollama, ~5,5 GB)"; \
-  Flags: postinstall hidewizard
+  Description: "Baixar a IA de redação agora (Ollama, ~4,9 GB — necessária para gerar os documentos)"; \
+  Flags: postinstall hidewizard skipifsilent
 Filename: "{sys}\wscript.exe"; \
   Parameters: """{app}\instalacao-local\iniciar-app.vbs"""; \
   WorkingDir: "{app}"; \

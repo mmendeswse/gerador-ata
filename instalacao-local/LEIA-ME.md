@@ -8,11 +8,19 @@ não há cota, chave de API nem custo.
 
 ## Instalação (uma única vez)
 
+**Pelo instalador `.exe` (recomendado):** baixe o `GeradorAta-Instalador.exe`
+na página de *Releases* do repositório. Ele **já traz embutidos** o Node.js, o
+whisper.cpp e o modelo de transcrição — o programa abre e transcreve assim que
+instala. Só a IA de redação (Ollama + modelo, ~4,9 GB) é baixada na primeira
+instalação, na opção oferecida ao final (é grande demais para caber no `.exe`).
+
+**Pelo código-fonte:**
+
 1. Dê um **duplo clique em `instalar.cmd`** (nesta pasta) e aguarde.
    O instalador baixa ~350 MB (whisper + modelo de áudio) e ~4,9 GB (modelo de
    redação) e preenche o arquivo `.env` do projeto automaticamente.
 2. Ao final, dê um duplo clique em **`iniciar-local.cmd`** (na pasta do
-   projeto) e use o sistema em <http://localhost:3000>.
+   projeto) — o programa abre em janela própria.
 
 ## O que esperar (leia antes de usar)
 

@@ -1,12 +1,13 @@
 # =============================================================================
 #  INSTALADOR DO MODO LOCAL — Gerador de Ata e Momento Aberto
 # -----------------------------------------------------------------------------
-#  Deixa o sistema funcionando 100% no seu computador, sem serviço de IA:
-#    1. Confere o Node.js (instala via winget se faltar);
-#    2. Baixa o whisper.cpp (transcrição) e o modelo de áudio em português;
-#    3. Instala o Ollama e baixa o modelo de redação (llama3.1:8b);
-#    4. Preenche o arquivo .env com AI_PROVIDER=local e os caminhos.
-#  Downloads: ~350 MB (whisper + modelo small) + ~4,9 GB (modelo de redação).
+#  Deixa o sistema funcionando 100% no seu computador, sem serviço de IA.
+#
+#  Quando instalado pelo GeradorAta-Instalador.exe, o Node.js, o whisper.cpp e
+#  o modelo de transcrição JÁ VÊM EMBUTIDOS (pasta runtime/): este script só
+#  precisa instalar o Ollama e baixar o modelo de redação (~4,9 GB).
+#  Rodando a partir do código-fonte (GitHub), ele baixa também o que faltar.
+#
 #  Execute pelo instalar.cmd (duplo clique) ou:
 #    powershell -ExecutionPolicy Bypass -File instalar-ia-local.ps1
 # =============================================================================
@@ -16,9 +17,9 @@ $ProgressPreference = 'SilentlyContinue'
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
 
 $raiz        = Split-Path -Parent $PSScriptRoot   # pasta do projeto
+$runtime     = Join-Path $raiz 'runtime'          # runtime embutido pelo .exe (se houver)
 $ferramentas = Join-Path $PSScriptRoot 'ferramentas'
 $modelos     = Join-Path $PSScriptRoot 'modelos'
-New-Item -ItemType Directory -Force -Path $ferramentas, $modelos | Out-Null
 
 function Etapa($mensagem) { Write-Host ''; Write-Host "==> $mensagem" -ForegroundColor Cyan }
 
@@ -28,55 +29,79 @@ function Atualizar-Path {
 }
 
 # -----------------------------------------------------------------------------
-# 1. Node.js 20+
+# 1. Node.js
 # -----------------------------------------------------------------------------
 Etapa 'Conferindo o Node.js...'
-Atualizar-Path
-$node = Get-Command node -ErrorAction SilentlyContinue
-$versaoOk = $false
-if ($node) {
-  $maior = [int]((node --version) -replace '^v(\d+).*', '$1')
-  if ($maior -ge 20) { $versaoOk = $true }
-}
-if (-not $versaoOk) {
-  Write-Host 'Node.js 20+ nao encontrado. Instalando via winget...'
-  winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements
+$nodeEmbutido = Join-Path $runtime 'node\node.exe'
+if (Test-Path $nodeEmbutido) {
+  Write-Host "Node.js embutido no instalador: $nodeEmbutido"
+} else {
   Atualizar-Path
+  $node = Get-Command node -ErrorAction SilentlyContinue
+  $versaoOk = $false
+  if ($node) {
+    $maior = [int]((node --version) -replace '^v(\d+).*', '$1')
+    if ($maior -ge 20) { $versaoOk = $true }
+  }
+  if (-not $versaoOk) {
+    Write-Host 'Node.js 20+ nao encontrado. Instalando via winget...'
+    winget install --id OpenJS.NodeJS.LTS -e --accept-source-agreements --accept-package-agreements
+    Atualizar-Path
+  }
+  Write-Host ("Node.js: " + (node --version))
 }
-Write-Host ("Node.js: " + (node --version))
 
 # -----------------------------------------------------------------------------
 # 2. whisper.cpp (transcrição local)
 # -----------------------------------------------------------------------------
-Etapa 'Baixando o whisper.cpp (transcricao local)...'
-$whisperDir = Join-Path $ferramentas 'whisper'
+Etapa 'Conferindo o whisper.cpp (transcricao local)...'
 $whisperExe = $null
-if (Test-Path $whisperDir) {
-  $whisperExe = Get-ChildItem -Path $whisperDir -Recurse -Include 'whisper-cli.exe', 'main.exe' -ErrorAction SilentlyContinue |
-    Select-Object -First 1
-}
-if (-not $whisperExe) {
-  $release = Invoke-RestMethod 'https://api.github.com/repos/ggml-org/whisper.cpp/releases/latest'
-  $ativo = $release.assets | Where-Object { $_.name -match 'bin.*x64.*\.zip$' } | Select-Object -First 1
-  if (-not $ativo) { $ativo = $release.assets | Where-Object { $_.name -match 'x64.*\.zip$' -and $_.name -notmatch 'cuda|arm' } | Select-Object -First 1 }
-  if (-not $ativo) { throw 'Nao encontrei o pacote Windows x64 do whisper.cpp na ultima versao publicada. Baixe manualmente em https://github.com/ggml-org/whisper.cpp/releases e descompacte em instalacao-local\ferramentas\whisper.' }
-  Write-Host ("Baixando " + $ativo.name + " (" + [math]::Round($ativo.size / 1MB, 1) + " MB)...")
-  $zip = Join-Path $env:TEMP $ativo.name
-  Invoke-WebRequest -Uri $ativo.browser_download_url -OutFile $zip
-  Expand-Archive -Path $zip -DestinationPath $whisperDir -Force
-  Remove-Item $zip -Force
-  $whisperExe = Get-ChildItem -Path $whisperDir -Recurse -Include 'whisper-cli.exe', 'main.exe' |
-    Select-Object -First 1
-  if (-not $whisperExe) { throw 'O pacote do whisper.cpp foi baixado, mas nao contem whisper-cli.exe.' }
-}
-Write-Host ("Whisper: " + $whisperExe.FullName)
-
-Etapa 'Baixando o modelo de transcricao (ggml-small, ~466 MB)...'
-$modeloWhisper = Join-Path $modelos 'ggml-small.bin'
-if (-not (Test-Path $modeloWhisper)) {
-  Invoke-WebRequest -Uri 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin' -OutFile $modeloWhisper
+$cliEmbutido = Join-Path $runtime 'whisper\whisper-cli.exe'
+if (Test-Path $cliEmbutido) {
+  $whisperExe = Get-Item $cliEmbutido
+  Write-Host "Whisper embutido no instalador: $($whisperExe.FullName)"
 } else {
-  Write-Host 'Modelo ja baixado.'
+  New-Item -ItemType Directory -Force -Path $ferramentas | Out-Null
+  $whisperDir = Join-Path $ferramentas 'whisper'
+  if (Test-Path $whisperDir) {
+    $whisperExe = Get-ChildItem -Path $whisperDir -Recurse -Include 'whisper-cli.exe', 'main.exe' -ErrorAction SilentlyContinue |
+      Select-Object -First 1
+  }
+  if (-not $whisperExe) {
+    # Nem toda versão publica binários Windows: procura a mais recente que os tenha.
+    $releases = Invoke-RestMethod 'https://api.github.com/repos/ggml-org/whisper.cpp/releases?per_page=20'
+    $ativo = $null
+    foreach ($r in $releases) {
+      $ativo = $r.assets | Where-Object { $_.name -match '^whisper-blas-bin-x64\.zip$' } | Select-Object -First 1
+      if (-not $ativo) { $ativo = $r.assets | Where-Object { $_.name -match '^whisper-bin-x64\.zip$' } | Select-Object -First 1 }
+      if ($ativo) { break }
+    }
+    if (-not $ativo) { throw 'Nao encontrei o pacote Windows x64 do whisper.cpp. Baixe manualmente em https://github.com/ggml-org/whisper.cpp/releases e descompacte em instalacao-local\ferramentas\whisper.' }
+    Write-Host ("Baixando " + $ativo.name + " (" + [math]::Round($ativo.size / 1MB, 1) + " MB)...")
+    $zip = Join-Path $env:TEMP $ativo.name
+    Invoke-WebRequest -Uri $ativo.browser_download_url -OutFile $zip
+    Expand-Archive -Path $zip -DestinationPath $whisperDir -Force
+    Remove-Item $zip -Force
+    $whisperExe = Get-ChildItem -Path $whisperDir -Recurse -Include 'whisper-cli.exe', 'main.exe' |
+      Select-Object -First 1
+    if (-not $whisperExe) { throw 'O pacote do whisper.cpp foi baixado, mas nao contem whisper-cli.exe.' }
+  }
+  Write-Host ("Whisper: " + $whisperExe.FullName)
+}
+
+Etapa 'Conferindo o modelo de transcricao...'
+$modeloWhisper = Join-Path $runtime 'modelos\ggml-small.bin'
+if (Test-Path $modeloWhisper) {
+  Write-Host "Modelo embutido no instalador: $modeloWhisper"
+} else {
+  New-Item -ItemType Directory -Force -Path $modelos | Out-Null
+  $modeloWhisper = Join-Path $modelos 'ggml-small.bin'
+  if (-not (Test-Path $modeloWhisper)) {
+    Write-Host 'Baixando ggml-small (~466 MB)...'
+    Invoke-WebRequest -Uri 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin' -OutFile $modeloWhisper
+  } else {
+    Write-Host 'Modelo ja baixado.'
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -131,8 +156,7 @@ Set-Content -Path $envArquivo -Value $linhas -Encoding utf8
 
 Write-Host ''
 Write-Host '=============================================================' -ForegroundColor Green
-Write-Host ' Instalacao concluida! Para usar o sistema:' -ForegroundColor Green
-Write-Host '   1. De um duplo clique em iniciar-local.cmd (pasta do projeto);'
-Write-Host '   2. Abra http://localhost:3000 no navegador.'
+Write-Host ' Instalacao concluida! Para usar o sistema, abra o atalho' -ForegroundColor Green
+Write-Host ' "Gerador de Ata e Momento Aberto" (Area de Trabalho ou Menu Iniciar).'
 Write-Host ' Tudo roda no seu computador: nenhum dado sai dele.' -ForegroundColor Green
 Write-Host '============================================================='
