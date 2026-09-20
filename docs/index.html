@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gerador de Ata e Momento Aberto</title>
+  <meta name="description" content="Transforme o vídeo da reunião em documentos estruturados: Ata da Reunião e Momento Aberto.">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="light">
+  <!--
+    Política de segurança de conteúdo: só executa scripts deste site; conexões de rede apenas por
+    HTTPS (servidor de processamento e CDN do ffmpeg.wasm) ou com o servidor local de desenvolvimento.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' blob:; worker-src 'self' blob:; style-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' https: blob: data: http://localhost:* http://127.0.0.1:*; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="config.js"></script>
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+
+  <header class="app-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+          <rect x="7" y="4" width="28" height="38" rx="3" fill="none" stroke="currentColor" stroke-width="3"/>
+          <path d="M14 14h14M14 21h14M14 28h8" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="35" cy="35" r="9" fill="currentColor"/>
+          <path d="M32.5 31v8l6.5-4z" fill="#14304f"/>
+        </svg>
+        <div>
+          <h1>GERADOR DE ATA E MOMENTO ABERTO</h1>
+          <p class="subtitle">Transforme o vídeo da reunião em documentos estruturados</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span id="server-status" class="status-pill is-checking" role="status">Verificando servidor…</span>
+        <button id="btn-settings" class="btn btn-header" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm8.3 5.2-1.6-.9a6.9 6.9 0 0 0 0-1.6l1.6-.9a.8.8 0 0 0 .3-1.1l-1.5-2.6a.8.8 0 0 0-1-.3l-1.7.7c-.4-.3-.9-.6-1.4-.8l-.2-1.8a.8.8 0 0 0-.8-.7h-3a.8.8 0 0 0-.8.7l-.2 1.8c-.5.2-1 .5-1.4.8l-1.7-.7a.8.8 0 0 0-1 .3L3.4 9.2a.8.8 0 0 0 .3 1.1l1.6.9a6.9 6.9 0 0 0 0 1.6l-1.6.9a.8.8 0 0 0-.3 1.1l1.5 2.6c.2.4.6.5 1 .3l1.7-.7c.4.3.9.6 1.4.8l.2 1.8c.1.4.4.7.8.7h3c.4 0 .7-.3.8-.7l.2-1.8c.5-.2 1-.5 1.4-.8l1.7.7c.4.2.8 0 1-.3l1.5-2.6a.8.8 0 0 0-.3-1.1Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          Configurações
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="conteudo" class="container">
+    <div id="banner-area" aria-live="polite"></div>
+
+    <div class="grid-2">
+      <!-- 1. VÍDEO ------------------------------------------------------ -->
+      <section class="card" aria-labelledby="titulo-video">
+        <div class="card-head">
+          <span class="step-badge" aria-hidden="true">1</span>
+          <h2 id="titulo-video">Vídeo da Reunião</h2>
+        </div>
+
+        <div id="dropzone" class="dropzone" tabindex="0" role="button"
+             aria-label="Selecionar o vídeo da reunião. Você também pode arrastar e soltar o arquivo nesta área.">
+          <svg class="dropzone-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+            <path d="M24 32V12m0 0-8 8m8-8 8 8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 30v6a4 4 0 0 0 4 4h24a4 4 0 0 0 4-4v-6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <p class="dropzone-title">Arraste o vídeo da reunião para cá</p>
+          <p class="dropzone-or">ou</p>
+          <span class="btn btn-secondary" aria-hidden="true">SELECIONAR ARQUIVO</span>
+          <p class="dropzone-hint">Formatos preferenciais: <strong>MP4, MOV, WEBM, AVI e MKV</strong>.<br>Arquivos de áudio (MP3, M4A, WAV, OGG, FLAC) também são aceitos.</p>
+        </div>
+        <input id="file-input" class="visually-hidden" type="file" tabindex="-1" aria-hidden="true"
+               accept="video/*,audio/*,.mp4,.m4v,.mov,.webm,.avi,.mkv,.mpg,.mpeg,.wmv,.3gp,.mp3,.m4a,.wav,.ogg,.oga,.opus,.aac,.flac,.wma">
+
+        <div id="file-panel" class="file-panel" hidden>
+          <svg class="file-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+            <rect x="5" y="10" width="38" height="28" rx="4" fill="none" stroke="currentColor" stroke-width="3"/>
+            <path d="M20 18v12l10-6z" fill="currentColor"/>
+          </svg>
+          <div class="file-details">
+            <p id="file-name" class="file-name"></p>
+            <dl class="file-meta">
+              <div><dt>Tamanho</dt><dd id="file-size">—</dd></div>
+              <div><dt>Duração</dt><dd id="file-duration">—</dd></div>
+              <div><dt>Formato</dt><dd id="file-format">—</dd></div>
+            </dl>
+            <p id="file-note" class="field-hint" hidden></p>
+          </div>
+          <div class="file-actions">
+            <button id="btn-change-file" class="btn btn-secondary btn-small" type="button">Selecionar outro arquivo</button>
+            <button id="btn-remove-file" class="btn btn-ghost btn-small" type="button">Remover arquivo</button>
+          </div>
+        </div>
+
+        <p class="privacy-inline">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3 5 6v5c0 4.6 2.9 8.3 7 10 4.1-1.7 7-5.4 7-10V6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          O vídeo não sai do seu computador: o áudio é extraído aqui mesmo, no navegador.
+        </p>
+
+        <ol class="how-it-works" aria-label="Como funciona">
+          <li><span><strong>Extração local:</strong> o áudio é separado do vídeo no seu computador e dividido em trechos nas pausas da fala.</span></li>
+          <li><span><strong>Transcrição e análise:</strong> a IA transcreve, distingue as vozes, identifica participantes, propostas, deliberações e encaminhamentos.</span></li>
+          <li><span><strong>Redação e conferência:</strong> a Ata e o Momento Aberto são redigidos e conferidos contra a transcrição antes de serem exibidos.</span></li>
+          <li><span><strong>Revisão humana:</strong> você edita, copia ou baixa os documentos em TXT ou DOCX.</span></li>
+        </ol>
+      </section>
+
+      <!-- 2. INFORMAÇÕES ------------------------------------------------ -->
+      <section class="card" aria-labelledby="titulo-info">
+        <div class="card-head">
+          <span class="step-badge" aria-hidden="true">2</span>
+          <h2 id="titulo-info">Informações da reunião <span class="optional">(opcional)</span></h2>
+        </div>
+        <p class="card-intro">Preencha o que já souber. Esses dados são tratados como confiáveis e ajudam a IA a identificar os participantes e a montar os cabeçalhos.</p>
+
+        <form id="info-form" class="form-grid" autocomplete="off" novalidate>
+          <div class="field">
+            <label for="f-number">Número da reunião/sessão</label>
+            <input id="f-number" name="number" type="text" maxlength="20" placeholder="Ex.: 92ª">
+          </div>
+          <div class="field">
+            <label for="f-type">Tipo da reunião</label>
+            <input id="f-type" name="type" type="text" maxlength="80" list="tipos-reuniao" placeholder="Ex.: Reunião Ordinária">
+            <datalist id="tipos-reuniao">
+              <option value="Reunião Ordinária"></option>
+              <option value="Reunião Extraordinária"></option>
+              <option value="Sessão Ordinária"></option>
+              <option value="Sessão Extraordinária"></option>
+            </datalist>
+          </div>
+          <div class="field field-wide">
+            <label for="f-body">Nome do órgão/comissão</label>
+            <input id="f-body" name="body" type="text" maxlength="160" placeholder="Ex.: Comissão de Prerrogativas">
+          </div>
+          <div class="field">
+            <label for="f-date">Data</label>
+            <input id="f-date" name="date" type="text" inputmode="numeric" maxlength="10" placeholder="dd/mm/aaaa" aria-describedby="f-date-error">
+            <p id="f-date-error" class="field-error" hidden>Data inválida. Use o formato dd/mm/aaaa.</p>
+          </div>
+          <div class="field">
+            <label for="f-president">Nome do Presidente</label>
+            <input id="f-president" name="president" type="text" maxlength="120" placeholder="Opcional">
+          </div>
+          <div class="field field-wide">
+            <label for="f-location">Local</label>
+            <input id="f-location" name="location" type="text" maxlength="240" placeholder="Ex.: Sala de reuniões da 1ª Sub-Geral, 8º andar – BV 200">
+          </div>
+          <div class="field field-wide">
+            <label for="f-participants">Participantes conhecidos</label>
+            <textarea id="f-participants" name="participants" rows="5" maxlength="3500" aria-describedby="f-participants-hint"
+                      placeholder="Michel — Secretário&#10;Luciano — Membro&#10;Mariela — Membro (participação remota)"></textarea>
+            <p id="f-participants-hint" class="field-hint">Um por linha: nome — cargo, instituição ou função.</p>
+          </div>
+          <div class="field field-wide">
+            <label for="f-scope">Momento Aberto</label>
+            <select id="f-scope" name="scope">
+              <option value="auto">Detectar automaticamente o período do Momento Aberto (recomendado)</option>
+              <option value="all">Considerar a reunião inteira</option>
+            </select>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <!-- 3. PROCESSAR ---------------------------------------------------- -->
+    <section class="card action-card" aria-label="Processamento">
+      <div class="action-row">
+        <p id="privacy-notice" class="privacy-notice">
+          <strong>Aviso de privacidade:</strong> ao processar, o <em>áudio</em> da reunião e a transcrição serão enviados ao servidor de processamento configurado e, por ele, <span id="provider-name">ao serviço externo de IA (Google Gemini)</span>, para transcrição e redação. O vídeo permanece no seu computador e nada é armazenado de forma permanente pelo sistema.
+        </p>
+        <div class="action-buttons">
+          <button id="btn-process" class="btn btn-primary btn-large" type="button" disabled>PROCESSAR REUNIÃO</button>
+          <button id="btn-cancel" class="btn btn-danger-outline" type="button" hidden>CANCELAR</button>
+        </div>
+      </div>
+
+      <div id="progress" class="progress" hidden>
+        <div class="progress-head">
+          <h2 id="progress-title">Processando a reunião…</h2>
+          <p class="progress-clock">Tempo decorrido: <span id="progress-elapsed">00:00</span></p>
+        </div>
+        <div class="progress-bar" role="progressbar" aria-label="Progresso total" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <p id="progress-message" class="progress-message" role="status" aria-live="polite"></p>
+        <ol id="steps" class="steps"></ol>
+
+        <div id="error-panel" class="error-panel" role="alert" hidden>
+          <p id="error-title" class="error-title"></p>
+          <p id="error-hint" class="error-hint"></p>
+          <details id="error-details-wrap" hidden><summary>Detalhes técnicos</summary><pre id="error-details"></pre></details>
+          <div class="error-actions">
+            <button id="btn-retry" class="btn btn-primary" type="button">TENTAR NOVAMENTE</button>
+            <button id="btn-restart" class="btn btn-secondary" type="button">RECOMEÇAR DO ZERO</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. RESULTADOS --------------------------------------------------- -->
+    <section id="results" class="card results-card" aria-labelledby="titulo-resultados" hidden>
+      <div class="card-head results-head">
+        <h2 id="titulo-resultados">Documentos gerados</h2>
+        <p id="results-summary" class="results-summary"></p>
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Documentos gerados">
+        <button class="tab is-active" role="tab" id="tab-ata" aria-controls="panel-ata" aria-selected="true" type="button">ATA DA REUNIÃO</button>
+        <button class="tab" role="tab" id="tab-momento" aria-controls="panel-momento" aria-selected="false" tabindex="-1" type="button">MOMENTO ABERTO</button>
+        <button class="tab" role="tab" id="tab-transcricao" aria-controls="panel-transcricao" aria-selected="false" tabindex="-1" type="button">TRANSCRIÇÃO</button>
+      </div>
+
+      <!-- ATA -->
+      <div id="panel-ata" class="tab-panel" role="tabpanel" aria-labelledby="tab-ata" tabindex="0">
+        <div class="toolbar">
+          <button class="btn btn-primary" type="button" data-action="copy" data-doc="ata">COPIAR ATA</button>
+          <button class="btn btn-secondary" type="button" data-action="txt" data-doc="ata">BAIXAR TXT</button>
+          <button class="btn btn-secondary" type="button" data-action="docx" data-doc="ata">BAIXAR DOCX</button>
+          <span class="toolbar-gap"></span>
+          <button class="btn btn-secondary" type="button" data-action="edit" data-doc="ata" aria-pressed="false">EDITAR</button>
+          <button class="btn btn-ghost" type="button" data-action="regenerate" data-doc="ata">GERAR NOVAMENTE</button>
+        </div>
+        <div id="review-ata" class="review-box" hidden></div>
+        <div id="view-ata" class="doc-paper" aria-label="Visualização da Ata"></div>
+        <label class="visually-hidden" for="edit-ata">Texto da Ata da Reunião</label>
+        <textarea id="edit-ata" class="doc-editor" spellcheck="true" lang="pt-BR" hidden></textarea>
+        <p class="doc-hint" id="hint-ata">Clique em <strong>EDITAR</strong> (ou dê um duplo clique no texto) para corrigir nomes, datas e frases antes de copiar.</p>
+      </div>
+
+      <!-- MOMENTO ABERTO -->
+      <div id="panel-momento" class="tab-panel" role="tabpanel" aria-labelledby="tab-momento" tabindex="0" hidden>
+        <div class="toolbar">
+          <button class="btn btn-primary" type="button" data-action="copy" data-doc="momento">COPIAR MOMENTO ABERTO</button>
+          <button class="btn btn-secondary" type="button" data-action="txt" data-doc="momento">BAIXAR TXT</button>
+          <button class="btn btn-secondary" type="button" data-action="docx" data-doc="momento">BAIXAR DOCX</button>
+          <span class="toolbar-gap"></span>
+          <button class="btn btn-secondary" type="button" data-action="edit" data-doc="momento" aria-pressed="false">EDITAR</button>
+          <button class="btn btn-ghost" type="button" data-action="regenerate" data-doc="momento">GERAR NOVAMENTE</button>
+        </div>
+        <div id="review-momento" class="review-box" hidden></div>
+        <div id="view-momento" class="doc-paper" aria-label="Visualização do Momento Aberto"></div>
+        <label class="visually-hidden" for="edit-momento">Texto do Momento Aberto</label>
+        <textarea id="edit-momento" class="doc-editor" spellcheck="true" lang="pt-BR" hidden></textarea>
+        <p class="doc-hint" id="hint-momento">Clique em <strong>EDITAR</strong> (ou dê um duplo clique no texto) para revisar o relato antes de copiar.</p>
+      </div>
+
+      <!-- TRANSCRIÇÃO -->
+      <div id="panel-transcricao" class="tab-panel" role="tabpanel" aria-labelledby="tab-transcricao" tabindex="0" hidden>
+        <details id="participants-box" class="participants-box" open>
+          <summary>Participantes identificados <span id="participants-count" class="count-badge"></span></summary>
+          <p class="field-hint">Confira a identificação. Se corrigir algum nome ou função, clique em “Aplicar correções” para refazer a análise e os dois documentos com os dados corrigidos (a transcrição é reaproveitada).</p>
+          <div class="table-wrap">
+            <table class="participants-table">
+              <thead>
+                <tr><th scope="col">Voz</th><th scope="col">Nome</th><th scope="col">Cargo, função ou instituição</th><th scope="col">Preside</th><th scope="col">Comprovação encontrada</th></tr>
+              </thead>
+              <tbody id="participants-body"></tbody>
+            </table>
+          </div>
+          <button id="btn-apply-participants" class="btn btn-secondary" type="button" disabled>APLICAR CORREÇÕES E GERAR DOCUMENTOS NOVAMENTE</button>
+        </details>
+
+        <div class="toolbar">
+          <button class="btn btn-primary" type="button" data-action="copy" data-doc="transcricao">COPIAR TRANSCRIÇÃO</button>
+          <button class="btn btn-secondary" type="button" data-action="txt" data-doc="transcricao">BAIXAR TXT</button>
+          <span class="toolbar-gap"></span>
+          <label class="check"><input id="toggle-times" type="checkbox" checked> Mostrar horários</label>
+        </div>
+        <div id="transcript-view" class="transcript" aria-label="Transcrição completa"></div>
+      </div>
+
+      <div class="results-footer">
+        <button id="btn-clear" class="btn btn-ghost btn-small" type="button">Limpar resultados deste navegador</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <div class="container">
+      <p>Os documentos são produzidos por inteligência artificial a partir do áudio da reunião e <strong>devem ser revisados</strong> antes do uso oficial. <span id="app-version"></span></p>
+    </div>
+  </footer>
+
+  <!-- DIÁLOGOS --------------------------------------------------------- -->
+  <dialog id="dlg-settings" class="dialog" aria-labelledby="dlg-settings-title">
+    <form method="dialog" id="settings-form" novalidate>
+      <h2 id="dlg-settings-title">Configurações</h2>
+      <div class="field">
+        <label for="s-api">Endereço do servidor de processamento (backend)</label>
+        <input id="s-api" type="url" inputmode="url" placeholder="https://seu-projeto.vercel.app" spellcheck="false">
+        <p class="field-hint">Deixe em branco quando a interface e o servidor estiverem no mesmo endereço (Vercel, Cloudflare ou execução local).</p>
+      </div>
+      <div class="field">
+        <label for="s-password">Senha de acesso</label>
+        <input id="s-password" type="password" autocomplete="off" placeholder="Somente se o servidor exigir">
+        <label class="check"><input id="s-remember" type="checkbox"> Lembrar a senha neste navegador</label>
+      </div>
+      <details class="advanced">
+        <summary>Opções avançadas</summary>
+        <div class="field">
+          <label for="s-chunk">Duração de cada trecho de áudio enviado à IA (minutos)</label>
+          <input id="s-chunk" type="number" min="3" max="14" step="1">
+          <p class="field-hint">Trechos menores tendem a ser transcritos com mais precisão, mas consomem mais requisições. Padrão: 10.</p>
+        </div>
+      </details>
+      <p id="settings-status" class="settings-status" role="status" aria-live="polite"></p>
+      <div class="dialog-actions">
+        <button id="btn-test-connection" class="btn btn-secondary" type="button">Testar conexão</button>
+        <span class="toolbar-gap"></span>
+        <button class="btn btn-ghost" type="button" data-close>Cancelar</button>
+        <button id="btn-save-settings" class="btn btn-primary" type="submit">Salvar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-password" class="dialog dialog-small" aria-labelledby="dlg-password-title">
+    <form method="dialog" id="password-form" novalidate>
+      <h2 id="dlg-password-title">Senha de acesso</h2>
+      <p id="password-message">Este servidor exige uma senha de acesso para processar reuniões.</p>
+      <div class="field">
+        <label for="p-password">Senha</label>
+        <input id="p-password" type="password" autocomplete="off" required>
+        <label class="check"><input id="p-remember" type="checkbox"> Lembrar neste navegador</label>
+      </div>
+      <div class="dialog-actions">
+        <span class="toolbar-gap"></span>
+        <button class="btn btn-ghost" type="button" data-close>Cancelar</button>
+        <button class="btn btn-primary" type="submit">Continuar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-regenerate" class="dialog" aria-labelledby="dlg-regenerate-title">
+    <form method="dialog" id="regenerate-form" novalidate>
+      <h2 id="dlg-regenerate-title">Gerar novamente</h2>
+      <p>O documento será redigido de novo a partir da transcrição e das informações atuais do formulário. <strong>O texto atual, incluindo as suas edições, será substituído.</strong></p>
+      <div class="field">
+        <label for="r-instructions">Orientações adicionais para a nova redação <span class="optional">(opcional)</span></label>
+        <textarea id="r-instructions" rows="4" maxlength="1800" placeholder="Ex.: o relator do processo 16.411 é a Dra. Mariela; detalhar mais as comunicações da Presidência."></textarea>
+        <p class="field-hint">As orientações não autorizam a IA a inventar informações ausentes da reunião.</p>
+      </div>
+      <div class="dialog-actions">
+        <span class="toolbar-gap"></span>
+        <button class="btn btn-ghost" type="button" data-close>Cancelar</button>
+        <button class="btn btn-primary" type="submit">Gerar novamente</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-reprocess" class="dialog" aria-labelledby="dlg-reprocess-title">
+    <form method="dialog" novalidate>
+      <h2 id="dlg-reprocess-title">Processar novamente</h2>
+      <p>Este vídeo já foi transcrito. O que você deseja refazer?</p>
+      <div class="choice-list">
+        <button class="choice" type="submit" value="documents">
+          <strong>Refazer somente a análise e os documentos</strong>
+          <span>Reaproveita a transcrição já obtida. Mais rápido e sem novo custo de transcrição.</span>
+        </button>
+        <button class="choice" type="submit" value="everything">
+          <strong>Refazer tudo, inclusive a transcrição</strong>
+          <span>Extrai o áudio e transcreve o vídeo novamente.</span>
+        </button>
+      </div>
+      <div class="dialog-actions">
+        <span class="toolbar-gap"></span>
+        <button class="btn btn-ghost" type="button" data-close>Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dlg-confirm" class="dialog dialog-small" aria-labelledby="dlg-confirm-title">
+    <form method="dialog" novalidate>
+      <h2 id="dlg-confirm-title"></h2>
+      <p id="dlg-confirm-message"></p>
+      <div class="dialog-actions">
+        <span class="toolbar-gap"></span>
+        <button class="btn btn-ghost" type="submit" value="cancel">Cancelar</button>
+        <button id="dlg-confirm-ok" class="btn btn-primary" type="submit" value="ok">Confirmar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast-region" class="toast-region" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <noscript><p class="noscript">Este sistema precisa de JavaScript para funcionar.</p></noscript>
+</body>
+</html>

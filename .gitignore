@@ -1,0 +1,33 @@
+# Segredos — NUNCA versionar
+.env
+.env.*
+!.env.example
+.dev.vars
+
+# Dependências e artefatos
+node_modules/
+.vercel/
+.wrangler/
+dist/
+coverage/
+
+# Núcleo do ffmpeg.wasm hospedado localmente (opcional; arquivo grande)
+docs/vendor/ffmpeg-core/
+
+# Mídias e documentos de reuniões não devem ir para o repositório
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.webm
+*.mp3
+*.m4a
+*.wav
+*.docx
+
+# Sistema e editores
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/

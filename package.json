@@ -1,0 +1,16 @@
+{
+  "name": "gerador-ata-momento-aberto",
+  "version": "1.0.0",
+  "description": "Transforma o vídeo de uma reunião em Ata e Momento Aberto, com transcrição e controle de fidelidade.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node local-server.js",
+    "dev": "node --watch local-server.js",
+    "teste-local": "node local-server.js --teste",
+    "test": "node --test"
+  }
+}

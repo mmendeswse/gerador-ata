@@ -1,0 +1,20 @@
+# Cloudflare Workers — alternativa à Vercel para hospedar o backend (e, se quiser, a interface).
+# Publicar:  npx wrangler deploy
+# Segredos:  npx wrangler secret put GEMINI_API_KEY   (idem ACCESS_PASSWORD)
+name = "gerador-ata-momento-aberto"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# A pasta docs/ (interface) é servida pelo próprio Worker; /api/* vai para o backend.
+[assets]
+directory = "./docs"
+binding = "ASSETS"
+
+# Variáveis NÃO secretas. (Chave de API e senha entram como "secrets", nunca aqui.)
+[vars]
+ALLOWED_ORIGINS = ""
+MAX_AUDIO_MB = "12"
+
+[observability]
+enabled = true
