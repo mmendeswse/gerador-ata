@@ -2,11 +2,23 @@
 # segundo plano (janela nenhuma), espera ele responder e abre a interface em
 # uma janela de aplicativo (Edge --app: sem abas nem barra de endereço).
 # Ao fechar a janela, o servidor é encerrado.
+# Problemas são explicados em caixas de mensagem e registrados em
+# %LOCALAPPDATA%\GeradorAtaMomentoAberto\servidor.log.
 
 $ErrorActionPreference = 'SilentlyContinue'
+Add-Type -AssemblyName System.Windows.Forms
+
 $raiz = Split-Path -Parent $PSScriptRoot   # pasta do projeto
 $porta = 3000
 $endereco = "http://localhost:$porta/"
+$pastaDados = Join-Path $env:LOCALAPPDATA 'GeradorAtaMomentoAberto'
+New-Item -ItemType Directory -Force -Path $pastaDados | Out-Null
+$log = Join-Path $pastaDados 'servidor.log'
+
+function Avisar($texto, $icone) {
+  [System.Windows.Forms.MessageBox]::Show($texto, 'Gerador de Ata e Momento Aberto',
+    [System.Windows.Forms.MessageBoxButtons]::OK, $icone) | Out-Null
+}
 
 function ServidorAtivo {
   try {
@@ -14,13 +26,26 @@ function ServidorAtivo {
   } catch { $false }
 }
 
+# --- pré-requisito: Node.js -------------------------------------------------
+$env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
+            [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + $env:Path
+$temServidor = ServidorAtivo
+if (-not $temServidor -and -not (Get-Command node -ErrorAction SilentlyContinue)) {
+  Avisar ("A instalação ainda não está completa neste computador: o Node.js não foi encontrado." + [Environment]::NewLine + [Environment]::NewLine +
+    'Vou abrir agora o instalador da IA local, que baixa tudo o que falta (Node.js, Whisper e Ollama — ~5,5 GB, uma única vez). Ao final, clique de novo no ícone do programa.') `
+    ([System.Windows.Forms.MessageBoxIcon]::Warning)
+  Start-Process -FilePath (Join-Path $PSScriptRoot 'instalar.cmd') -WorkingDirectory $PSScriptRoot
+  exit 0
+}
+
+# --- servidor ----------------------------------------------------------------
 $servidor = $null
-if (-not (ServidorAtivo)) {
-  $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' +
-              [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + $env:Path
+if (-not $temServidor) {
+  Set-Content -Path $log -Value "[$(Get-Date)] Iniciando node local-server.js em $raiz" -Encoding utf8
   $servidor = Start-Process -FilePath 'node' -ArgumentList 'local-server.js' `
-    -WorkingDirectory $raiz -WindowStyle Hidden -PassThru
-  for ($i = 0; $i -lt 120; $i++) {
+    -WorkingDirectory $raiz -WindowStyle Hidden -PassThru `
+    -RedirectStandardError (Join-Path $pastaDados 'servidor-erro.log')
+  for ($i = 0; $i -lt 60; $i++) {
     if (ServidorAtivo) { break }
     if ($servidor -and $servidor.HasExited) { break }
     Start-Sleep -Milliseconds 500
@@ -28,16 +53,20 @@ if (-not (ServidorAtivo)) {
 }
 
 if (-not (ServidorAtivo)) {
-  Add-Type -AssemblyName System.Windows.Forms
-  [System.Windows.Forms.MessageBox]::Show(
-    "Não foi possível iniciar o servidor do Gerador de Ata.`n`nConfira se o Node.js está instalado (o instalador da IA local cuida disso) e tente novamente.",
-    'Gerador de Ata e Momento Aberto',
-    [System.Windows.Forms.MessageBoxButtons]::OK,
-    [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  $detalhe = ''
+  $erroLog = Join-Path $pastaDados 'servidor-erro.log'
+  if (Test-Path $erroLog) {
+    $detalhe = ((Get-Content $erroLog -Tail 5) -join [Environment]::NewLine)
+  }
+  Avisar ("Não foi possível iniciar o servidor do programa." + [Environment]::NewLine + [Environment]::NewLine +
+    $(if ($detalhe) { "Detalhes técnicos:" + [Environment]::NewLine + $detalhe } else { "Nenhum detalhe registrado em $erroLog." }) + [Environment]::NewLine + [Environment]::NewLine +
+    'Tente executar, no Menu Iniciar, "Instalar ou atualizar a IA local".') `
+    ([System.Windows.Forms.MessageBoxIcon]::Error)
   if ($servidor -and -not $servidor.HasExited) { Stop-Process -Id $servidor.Id -Force }
   exit 1
 }
 
+# --- janela do aplicativo ------------------------------------------------------
 $edge = @(
   "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
   "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe",
@@ -48,7 +77,7 @@ if ($edge) {
   # Perfil próprio: a janela vira um processo dedicado e não mexe no Edge do usuário.
   $janela = Start-Process -FilePath $edge -ArgumentList @(
     "--app=$endereco",
-    "--user-data-dir=$env:LOCALAPPDATA\GeradorAtaMomentoAberto\janela",
+    "--user-data-dir=$pastaDados\janela",
     '--no-first-run', '--disable-features=msEdgeSplitWindow'
   ) -PassThru
   $janela.WaitForExit()
