@@ -26,16 +26,17 @@ OutputBaseFilename=GeradorAta-Instalador
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+; Instalação de um clique: sem escolha de pasta nem telas intermediárias.
+DisableWelcomePage=yes
+DisableDirPage=yes
 DisableProgramGroupPage=yes
+DisableReadyPage=yes
 UninstallDisplayName={#AppName}
 SetupIconFile={#SourceDir}\instalacao-local\app.ico
 UninstallDisplayIcon={app}\instalacao-local\app.ico
 
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
-
-[Tasks]
-Name: "desktopicon"; Description: "Criar atalho na &Área de Trabalho"
 
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
@@ -50,19 +51,22 @@ Name: "{group}\{#AppName}"; Filename: "{sys}\wscript.exe"; \
   WorkingDir: "{app}"; IconFilename: "{app}\instalacao-local\app.ico"; \
   Comment: "Abre o Gerador de Ata e Momento Aberto"
 Name: "{group}\Instalar ou atualizar a IA local"; Filename: "{app}\instalacao-local\instalar.cmd"; WorkingDir: "{app}\instalacao-local"
+; Atalho da Área de Trabalho: criado sempre, serve APENAS para abrir o programa.
 Name: "{userdesktop}\{#AppName}"; Filename: "{sys}\wscript.exe"; \
   Parameters: """{app}\instalacao-local\iniciar-app.vbs"""; \
-  WorkingDir: "{app}"; IconFilename: "{app}\instalacao-local\app.ico"; Tasks: desktopicon
+  WorkingDir: "{app}"; IconFilename: "{app}\instalacao-local\app.ico"
 
 [Run]
 ; Sempre: escreve o .env apontando para o runtime embutido (sem downloads, sem janela).
 Filename: "powershell.exe"; \
   Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\instalacao-local\configurar-env.ps1"""; \
   StatusMsg: "Configurando o programa..."; Flags: runhidden
+; Automático durante a instalação: baixa a IA de redação (Ollama, ~4,9 GB).
+; A janela mostra o progresso; em instalação silenciosa (/SILENT) é pulado.
 Filename: "powershell.exe"; \
   Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\instalacao-local\instalar-ia-local.ps1"""; \
-  Description: "Baixar a IA de redação agora (Ollama, ~4,9 GB — necessária para gerar os documentos)"; \
-  Flags: postinstall hidewizard skipifsilent
+  StatusMsg: "Baixando a IA de redação (~4,9 GB — acompanhe na janela aberta)..."; \
+  Check: not WizardSilent
 Filename: "{sys}\wscript.exe"; \
   Parameters: """{app}\instalacao-local\iniciar-app.vbs"""; \
   WorkingDir: "{app}"; \

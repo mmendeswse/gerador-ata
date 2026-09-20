@@ -16,6 +16,24 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 try { [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 } catch {}
 
+# Qualquer falha (ex.: queda de internet no download) vira um aviso claro,
+# em vez de a janela sumir sem explicação.
+trap {
+  Write-Host ''
+  Write-Host "ERRO: $_" -ForegroundColor Red
+  try {
+    Add-Type -AssemblyName System.Windows.Forms
+    [System.Windows.Forms.MessageBox]::Show(
+      ("A instalação da IA de redação não foi concluída:" + [Environment]::NewLine + [Environment]::NewLine + $_ +
+       [Environment]::NewLine + [Environment]::NewLine +
+       'O programa abre e transcreve mesmo assim. Para concluir esta parte depois, use no Menu Iniciar: "Instalar ou atualizar a IA local".'),
+      'Gerador de Ata e Momento Aberto',
+      [System.Windows.Forms.MessageBoxButtons]::OK,
+      [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
+  } catch {}
+  exit 1
+}
+
 $raiz        = Split-Path -Parent $PSScriptRoot   # pasta do projeto
 $runtime     = Join-Path $raiz 'runtime'          # runtime embutido pelo .exe (se houver)
 $ferramentas = Join-Path $PSScriptRoot 'ferramentas'
