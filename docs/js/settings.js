@@ -52,13 +52,28 @@ function clampChunk(value, fallback) {
   return Math.min(14, Math.max(3, minutes));
 }
 
+/**
+ * Servida em localhost (npm start, instalador do modo local), a interface fala
+ * com o PRÓPRIO servidor que a entregou — o API_BASE_URL de config.js existe
+ * para hospedagens estáticas (GitHub Pages) e apontaria para a nuvem.
+ */
+function servidaLocalmente() {
+  try {
+    return ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export function getSettings() {
   const fileConfig = { ...DEFAULTS, ...(window.APP_CONFIG ?? {}) };
   const storedApi = readApiOverride();
   const storedChunk = read(localStorage, KEYS.chunk);
 
   return {
-    apiBaseUrl: normalizeApiBase(storedApi !== null ? storedApi : fileConfig.API_BASE_URL),
+    apiBaseUrl: normalizeApiBase(
+      storedApi !== null ? storedApi : servidaLocalmente() ? '' : fileConfig.API_BASE_URL,
+    ),
     apiBaseUrlIsCustom: storedApi !== null,
     chunkMinutes: clampChunk(storedChunk ?? fileConfig.CHUNK_MINUTES, DEFAULTS.CHUNK_MINUTES),
     audioBitrateKbps: [24, 32, 40, 48, 56, 64].includes(Number(fileConfig.AUDIO_BITRATE_KBPS))
@@ -86,7 +101,7 @@ function readApiOverride() {
 
 export function saveSettings({ apiBaseUrl, chunkMinutes }) {
   const normalized = normalizeApiBase(apiBaseUrl);
-  const fromFile = normalizeApiBase((window.APP_CONFIG ?? {}).API_BASE_URL);
+  const fromFile = normalizeApiBase(servidaLocalmente() ? '' : (window.APP_CONFIG ?? {}).API_BASE_URL);
   // Só grava quando difere do config.js, para que atualizações daquele arquivo continuem valendo.
   write(localStorage, KEYS.api, normalized === fromFile ? null : JSON.stringify({ url: normalized }));
   write(localStorage, KEYS.chunk, clampChunk(chunkMinutes, DEFAULTS.CHUNK_MINUTES));
