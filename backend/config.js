@@ -58,7 +58,12 @@ export function loadConfig(env = {}) {
   return {
     version: APP_VERSION,
     provider,
-    providerLabel: provider === 'mock' ? 'Modo de teste (sem IA)' : 'Google Gemini',
+    providerLabel:
+      provider === 'mock'
+        ? 'Modo de teste (sem IA)'
+        : provider === 'local'
+          ? 'IA local (Whisper + Ollama)'
+          : 'Google Gemini',
 
     geminiApiKey: text(env.GEMINI_API_KEY),
     geminiBaseUrl:
@@ -83,6 +88,15 @@ export function loadConfig(env = {}) {
     // Orçamento de tempo por requisição (a Vercel encerra funções em 300 s).
     requestBudgetMs: Math.round(number(env.REQUEST_BUDGET_SECONDS, 280, { min: 20, max: 1700 }) * 1000),
 
+    // Modo local (AI_PROVIDER=local): whisper.cpp + Ollama, sem serviço externo.
+    whisperCli: text(env.WHISPER_CLI),
+    whisperModel: text(env.WHISPER_MODEL),
+    whisperLanguage: text(env.WHISPER_LANGUAGE) || 'pt',
+    whisperThreads: Math.round(number(env.WHISPER_THREADS, 4, { min: 1, max: 32 })),
+    ollamaUrl: text(env.OLLAMA_URL).replace(/\/+$/, '') || 'http://127.0.0.1:11434',
+    ollamaModel: text(env.OLLAMA_MODEL) || 'llama3.1:8b',
+    ollamaNumCtx: Math.round(number(env.OLLAMA_NUM_CTX, 16384, { min: 2048, max: 131072 })),
+
     // Apenas para testes automatizados do provedor simulado.
     mockDelayMs: Math.round(number(env.MOCK_DELAY_MS, 350, { min: 0, max: 10000 })),
     mockScenario: text(env.MOCK_SCENARIO),
@@ -96,9 +110,23 @@ export function publicInfo(config) {
     version: config.version,
     provider: config.provider,
     providerLabel: config.providerLabel,
-    model: config.provider === 'mock' ? 'simulado' : config.textModels[0],
-    transcriptionModel: config.provider === 'mock' ? 'simulado' : config.transcriptionModels[0],
-    configured: config.provider === 'mock' || Boolean(config.geminiApiKey),
+    model:
+      config.provider === 'mock'
+        ? 'simulado'
+        : config.provider === 'local'
+          ? config.ollamaModel
+          : config.textModels[0],
+    transcriptionModel:
+      config.provider === 'mock'
+        ? 'simulado'
+        : config.provider === 'local'
+          ? 'whisper.cpp'
+          : config.transcriptionModels[0],
+    configured:
+      config.provider === 'mock' ||
+      (config.provider === 'local'
+        ? Boolean(config.whisperCli && config.whisperModel)
+        : Boolean(config.geminiApiKey)),
     requiresPassword: Boolean(config.accessPassword),
     corsOpen: config.allowedOrigins.includes('*'),
     maxAudioBytes: config.maxAudioBytes,

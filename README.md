@@ -240,7 +240,7 @@ Todas ficam **somente no servidor** (painel da Vercel/Cloudflare ou arquivo `.en
 | `GEMINI_TEMPERATURE` | não | padrão do modelo | 0 a 2. Nos modelos Gemini 3, o Google recomenda manter o padrão. |
 | `MAX_AUDIO_MB` | não | `4` | Tamanho máximo de cada trecho de áudio. A interface ajusta a duração dos trechos a esse limite. Na Vercel, mantenha 4. |
 | `REQUEST_BUDGET_SECONDS` | não | `280` | Tempo máximo de espera pela IA por requisição (a Vercel encerra funções aos 300 s). |
-| `AI_PROVIDER` | não | `gemini` | `mock` liga o provedor simulado (teste sem chave). |
+| `AI_PROVIDER` | não | `gemini` | `local` roda tudo no próprio computador (whisper.cpp + Ollama — veja [`instalacao-local/LEIA-ME.md`](instalacao-local/LEIA-ME.md)); `mock` liga o provedor simulado (teste sem chave). |
 | `PORT` | não | `3000` | Porta do servidor local. |
 
 **Segurança da chave:** o navegador nunca recebe a chave. Ela é lida em `backend/config.js` e enviada ao Google apenas no cabeçalho `x-goog-api-key` (nunca em URL, log ou resposta). `docs/config.js` é público e contém só o endereço do backend.
@@ -268,6 +268,8 @@ npm start
 ```
 
 > Não abra `docs/index.html` com duplo clique: navegadores bloqueiam módulos JavaScript em `file://`. Use sempre o servidor local.
+
+**Modo 100% local (sem serviço de IA, sem cota e sem custo):** a transcrição pode ser feita pelo **whisper.cpp** e a redação pelo **Ollama**, tudo no seu computador — nenhum dado sai dele. No Windows, dê um duplo clique em `instalacao-local/instalar.cmd` e depois em `iniciar-local.cmd`. Leia antes as limitações (velocidade e ausência de separação de vozes) em [`instalacao-local/LEIA-ME.md`](instalacao-local/LEIA-ME.md).
 
 ---
 

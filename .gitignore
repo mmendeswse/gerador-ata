@@ -14,6 +14,10 @@ coverage/
 # Núcleo do ffmpeg.wasm hospedado localmente (opcional; arquivo grande)
 docs/vendor/ffmpeg-core/
 
+# Ferramentas e modelos baixados pelo instalador do modo local (arquivos grandes)
+instalacao-local/ferramentas/
+instalacao-local/modelos/
+
 # Mídias e documentos de reuniões não devem ir para o repositório
 *.mp4
 *.mov
